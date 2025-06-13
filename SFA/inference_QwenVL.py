@@ -76,6 +76,9 @@ def eval_model(args):
     else:
         raise ValueError(f"Unknown data type: {args.data}")
 
+    with open(args.subjects_file, 'r') as f:
+        subjects = json.load(f)
+
     img_ids = coco.getImgIds()
     for img_id in tqdm(img_ids):
         coco_info = coco.loadImgs(img_id)[0]
@@ -83,8 +86,11 @@ def eval_model(args):
         expression = coco_info['caption']
         width = coco_info['width']
         height = coco_info['height']
-        prompt = f'Output the bounding box of {expression} in the image.'
-        
+        if args.focus_enhancement:
+            prompt = f'Output the bounding box of {expression} in the image. Please focus on {subjects[str(img_id)]}.'
+        else:
+            prompt = f'Output the bounding box of {expression} in the image.'
+
         messages = [
             {
                 "role": "user",
@@ -157,5 +163,7 @@ if __name__ == '__main__':
     parser.add_argument("--output_file", type=str, default='results.jsonl', help="Path to save the output results")
     parser.add_argument("--annotation_file", type=str, default=None, help="Path to COCO annotation file (optional)")
     parser.add_argument("--image_root", type=str, default=None, help="Root directory for images (optional)")
+    parser.add_argument('--focus-enhancement', action='store_true', help='Implement the Focus-enhancement Strategy.')
+    parser.add_argument('--subjects-file', type=str, required=True, help='Path to the subjects JSON file (COCO image id to text mapping).')
     args = parser.parse_args()
     eval_model(args)
