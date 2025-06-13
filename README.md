@@ -51,7 +51,7 @@
 
 ### 1. Baseline
 
-We recommend using the official codebase for evaluation. You only need to modify the data path. In the `Baseline` folder, we provide inference scripts using **Grounding DINO** and **Qwen2-VL**, namely:
+We recommend using the official codebase for evaluation. You only need to modify the data path. In the `baseline` folder, we provide inference scripts using **Grounding DINO** and **Qwen2-VL**, namely:
 
 - `inference_GD.py`
 - `inference_QwenVL.py`
