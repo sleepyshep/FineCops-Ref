@@ -18,63 +18,93 @@
 - [Preparation](#preparation)
 - [Usage](#usage)
 - [Citation](#citation)
-- [Acknowledgment](#acknowledgment)
 
 ## 👀 Overview
 
 **Referring Expression Comprehension (REC)** is a foundational cross-modal task that evaluates the interplay of language understanding, image comprehension, and language-to-image grounding. It serves as an essential testing ground for Multimodal Large Language Models (MLLMs). To advance this field, we introduced a new REC dataset in our previous conference paper, characterized by two key features. First, it is designed with **controllable difficulty levels**, requiring multi-level fine-grained reasoning across object categories, attributes, and multi-hop relationships. Second, it incorporates **negative text and images** generated through fine-grained editing and augmentation, explicitly testing a model’s ability to reject scenarios where the target object is absent—an often-overlooked yet critical challenge in existing datasets. In this extended work, we propose two new methods to tackle the challenges of fine-grained REC by combining the strengths of Specialist Models and MLLMs. **The first method** adaptively assigns simple cases to faster, lightweight models and reserves complex ones for powerful MLLMs, balancing accuracy and efficiency. **The second method** lets a specialist generate a set of possible object regions, and the MLLM selects the most plausible one using its reasoning ability. These collaborative strategies lead to significant improvements on our dataset and other challenging benchmarks. Our results show that combining specialized and general-purpose models offers a practical path toward solving complex real-world vision-language tasks.
 
 <div align=center>
-<img width="600" alt="image" src="./assests/method.png">
+<img width="600" alt="image" src="./assets/method.png">
 </div>
+
 
 ## 👨‍💻 Preparation
 
 1. Download REC Benchmarks:
+   - Download the [**FineCops-Ref**](https://github.com/liujunzhuo/FineCops-Ref) dataset.
 
-   - Download the **FineCops-Ref** dataset from [FineCops-Ref Dataset](https://github.com/liujunzhuo/FineCops-Ref).
-
-   - Optionally, download [**Ref-Adv**](https://github.com/aws/aws-refcocog-adv) and [**Ref-Reasoning**](https://github.com/sibeiyang/sgmn) datasets for evaluation.
+   - Optionally, download [**Ref-Adv**](https://github.com/aws/aws-refcocog-adv) and [**Ref-Reasoning**](https://github.com/sibeiyang/sgmn) datasets.
 
    - Place datasets in the `data/` directory (e.g., `data/finecops-ref/`, `data/ref-adv/`, `data/ref-reasoning/`).
 
-3. Download pre-trained model checkpoints:
+2. Download pre-trained model checkpoints:
    - Obtain checkpoints for Specialist Models (e.g., [Grounding DINO](https://github.com/open-mmlab/mmdetection/blob/main/configs/mm_grounding_dino)) and MLLMs (e.g., [Qwen-VL](https://github.com/QwenLM/Qwen2.5-VL), [InternVL](https://github.com/OpenGVLab/InternVL)) from their respective repositories.
    - Place checkpoints in the `checkpoints/` directory.
+3. Environment Setup
+   - We recommend installing the required environments from their respective repositories. For example:
+     - [Grounding DINO](https://github.com/open-mmlab/mmdetection/blob/main/configs/mm_grounding_dino)
+     - [CogVLM](https://github.com/THUDM/CogVLM)
+     - [Qwen-VL](https://github.com/QwenLM/Qwen2.5-VL)
+     - [InternVL](https://github.com/OpenGVLab/InternVL)
 
 ## 🎯 Usage
 
-The repository supports evaluating SFA and CRS on FineCops-Ref and other REC benchmarks. The `--model_type` parameter specifies the method (`sfa` or `crs`). The `--top_k` parameter in CRS controls the number of candidate bounding boxes (default: 5).
+### 1. Baseline
 
-1. Example for evaluating FineCops-Ref with SFA:
+We recommend using the official codebase for evaluation. You only need to modify the data path. In the `Baseline` folder, we provide inference scripts using **Grounding DINO** and **Qwen2-VL**, namely:
 
-```Shell
-CUDA_VISIBLE_DEVICES=0 bash scripts/eval/finecops_sfa.sh
-```
+- `inference_GD.py` for Grounding DINO
+- `inference_QwenVL.py` for Qwen2-VL
 
-2. Example for evaluating FineCops-Ref with CRS (default top-5 candidates):
+For evaluation metrics, please refer to `evaluation_baseline.py`, which includes the computation of **precision**, **recall**, and **AUROC**.
 
-```Shell
-CUDA_VISIBLE_DEVICES=0 bash scripts/eval/finecops_crs.sh
-```
+### 2. Slow-Fast Adaptation (SFA)
 
-3. Example for evaluating Ref-Adv with SFA:
+1. **Target Extraction**
+    Use GPT to extract the target from the input expression. See `target_extraction.py`.
+2. **Task Routing**
+    Use a router (e.g., Grounding DINO) for level assessment and task routing. See `task_routing.py`.
+3. **Inference**
+    Based on routing results:
+   - **Level 1** data is processed using specialist models (e.g., Grounding DINO).
+   - **Level 2** data is processed using MLLMs (e.g., Qwen2-VL, InternVL2.5).
+4. **Focus-Enhancement Strategy (Optional)**
+    To implement the focus-enhancement strategy, simply set the `--focus_enhancement` parameter.
+5. **Evaluation**
+    Evaluate the inference results using `evaluation_SFA.py`.
 
-```Shell
-CUDA_VISIBLE_DEVICES=0 bash scripts/eval/refadv_sfa.sh
-```
+<div align=center>
+<img width="600" alt="image" src="./assets/flops.png">
+</div>
 
-4. Example for evaluating Ref-Reasoning with CRS:
+### 3. Candidate Region Selection (CRS)
 
-```Shell
-CUDA_VISIBLE_DEVICES=0 bash scripts/eval/refreasoning_crs.sh
-```
+1. **Candidate Generation**
+    Use specialist models (e.g., Grounding DINO) to generate candidate regions. See `candidate_generation.py`.
 
-5. Example for instruction tuning CRS on RefCOCO (12k samples):
+2. **Instruction Tuning for Multi-Choice Selection**
+    We fine-tune MLLMs with a small subset of RefCOCO data to improve their instruction-following capability, without risking data leakage. The fine-tuning datasets are:
 
-```Shell
-CUDA_VISIBLE_DEVICES=0 bash scripts/train/crs_instruction_tuning.sh
-```
+   - `refcoco_CRS_pos.json` (positive examples)
+   - `refcoco_CRS_neg.json` (includes "None" options, allowing models to reject hard negatives)
+
+   We recommend using [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) for SFT.
+
+3. **Inference**
+    Inference scripts using Qwen2-VL for positive and negative samples are provided in:
+
+   - `region_selection_pos.py`
+   - `region_selection_neg.py`
+
+4. **Evaluation**
+    Evaluate model performance on both positive and negative samples using:
+
+   - `evaluation_CRS_pos.py`
+   - `evaluation_CRS_neg.py`
+
+<div align=center>
+<img width="600" alt="image" src="./assets/time.png">
+</div>
 
 ## License
 
@@ -92,7 +122,3 @@ If you use FineCops-Ref or our methods in your research, please cite our work us
   year={2025},
 }
 ```
-
-## Acknowledgment
-
-We extend our gratitude to the open-source efforts of [Grounding DINO](https://github.com/open-mmlab/mmdetection/blob/main/configs/mm_grounding_dino), [Qwen-VL](https://github.com/QwenLM/Qwen2.5-VL), [InternVL](https://github.com/OpenGVLab/InternVL).
