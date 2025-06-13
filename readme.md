@@ -23,8 +23,9 @@
 **Referring Expression Comprehension (REC)** is a foundational cross-modal task that evaluates the interplay of language understanding, image comprehension, and language-to-image grounding. It serves as an essential testing ground for Multimodal Large Language Models (MLLMs). To advance this field, we introduced a new REC dataset in our previous conference paper, characterized by two key features. First, it is designed with **controllable difficulty levels**, requiring multi-level fine-grained reasoning across object categories, attributes, and multi-hop relationships. Second, it incorporates **negative text and images** generated through fine-grained editing and augmentation, explicitly testing a model’s ability to reject scenarios where the target object is absent—an often-overlooked yet critical challenge in existing datasets. In this extended work, we propose two new methods to tackle the challenges of fine-grained REC by combining the strengths of Specialist Models and MLLMs. **The first method** adaptively assigns simple cases to faster, lightweight models and reserves complex ones for powerful MLLMs, balancing accuracy and efficiency. **The second method** lets a specialist generate a set of possible object regions, and the MLLM selects the most plausible one using its reasoning ability. These collaborative strategies lead to significant improvements on our dataset and other challenging benchmarks. Our results show that combining specialized and general-purpose models offers a practical path toward solving complex real-world vision-language tasks.
 
 <div align=center>
-<img width="600" alt="image" src="./assests/method.png">
+<img width="600" alt="image" src="./assets/method.png">
 </div>
+
 
 ## 👨‍💻 Preparation
 
@@ -72,7 +73,7 @@ For evaluation metrics, please refer to `evaluation_baseline.py`, which includes
     Evaluate the inference results using `evaluation_SFA.py`.
 
 <div align=center>
-<img width="600" alt="image" src="./assests/flops.png">
+<img width="600" alt="image" src="./assets/flops.png">
 </div>
 
 ### 3. Candidate Region Selection (CRS)
@@ -100,7 +101,12 @@ For evaluation metrics, please refer to `evaluation_baseline.py`, which includes
    - `evaluation_CRS_pos.py`
    - `evaluation_CRS_neg.py`
 
+<div align=center>
+<img width="600" alt="image" src="./assets/time.png">
+</div>
+
 ## License
+
 This project is released under the [MIT License](LICENSE).
 
 ## Citation
